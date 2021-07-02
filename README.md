@@ -2,7 +2,7 @@
 
 The Registration Operator has 2 operators, **Cluster Manager** and **Klusterlet**.
 **Cluster Manager** installs the foundational components of OCM for the Hub cluster.
-And we can use the **Klusterlet** to install the agent components on the manged clusters when we import the manged clusters to the Hub.
+And we can use the **Klusterlet** to install the agent components on the managed clusters when we import the managed clusters to the Hub.
 
 The 2 operators are available on OperatorHub [Cluster Manager](https://operatorhub.io/operator/cluster-manager) and [Klusterlet](https://operatorhub.io/operator/klusterlet).
 
