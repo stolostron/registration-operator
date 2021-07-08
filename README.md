@@ -55,7 +55,7 @@ The controllers are all deployed in _open-cluster-management-agent_ namespace by
 ## What is next
 
 After a successful deployment, a `certificatesigningrequest` and a `managedcluster` will
-be created on the hub.
+be created on the hub cluster.
 
 ```
 kubectl get csr
