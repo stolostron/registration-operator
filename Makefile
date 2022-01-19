@@ -38,7 +38,8 @@ operatorsdk_gen_dir:=$(dir $(OPERATOR_SDK))
 OLM_NAMESPACE?=olm
 OLM_VERSION?=0.16.1
 
-KUSTOMIZE?=$(PERMANENT_TMP_GOPATH)/bin/kustomize
+PWD=$(shell pwd)
+KUSTOMIZE?=$(PWD)/$(PERMANENT_TMP_GOPATH)/bin/kustomize
 KUSTOMIZE_VERSION?=v3.5.4
 KUSTOMIZE_ARCHIVE_NAME?=kustomize_$(KUSTOMIZE_VERSION)_$(GOHOSTOS)_$(GOHOSTARCH).tar.gz
 kustomize_dir:=$(dir $(KUSTOMIZE))
@@ -95,7 +96,10 @@ deploy-hub: deploy-hub-operator apply-hub-cr
 deploy-spoke: deploy-spoke-operator apply-spoke-cr
 
 deploy-hub-operator: ensure-kustomize
+	cp deploy/cluster-manager/config/kustomization.yaml deploy/cluster-manager/config/kustomization.yaml.tmp
+	cd deploy/cluster-manager/config && $(KUSTOMIZE) edit set image quay.io/open-cluster-management/registration-operator:latest=$(IMAGE_NAME)
 	$(KUSTOMIZE) build deploy/cluster-manager/config | $(KUBECTL) apply -f -
+	mv deploy/cluster-manager/config/kustomization.yaml.tmp deploy/cluster-manager/config/kustomization.yaml
 
 apply-hub-cr:
 	$(SED_CMD) -e "s,quay.io/open-cluster-management/registration,$(REGISTRATION_IMAGE)," -e "s,quay.io/open-cluster-management/work,$(WORK_IMAGE)," -e "s,quay.io/open-cluster-management/placement,$(PLACEMENT_IMAGE)," deploy/cluster-manager/config/samples/operator_open-cluster-management_clustermanagers.cr.yaml | $(KUBECTL) apply -f -
@@ -115,7 +119,10 @@ bootstrap-secret:
 	$(KUSTOMIZE) build deploy/klusterlet/config/samples/bootstrap | $(KUBECTL) apply -f -
 
 deploy-spoke-operator: ensure-kustomize
+	cp deploy/klusterlet/config/kustomization.yaml deploy/klusterlet/config/kustomization.yaml.tmp
+	cd deploy/klusterlet/config && $(KUSTOMIZE) edit set image quay.io/open-cluster-management/registration-operator:latest=$(IMAGE_NAME)
 	$(KUSTOMIZE) build deploy/klusterlet/config | $(KUBECTL) apply -f -
+	mv deploy/klusterlet/config/kustomization.yaml.tmp deploy/klusterlet/config/kustomization.yaml
 
 apply-spoke-cr: bootstrap-secret
 	$(KUSTOMIZE) build deploy/klusterlet/config/samples | $(SED_CMD) -e "s,quay.io/open-cluster-management/registration,$(REGISTRATION_IMAGE)," -e "s,quay.io/open-cluster-management/work,$(WORK_IMAGE)," | $(KUBECTL) apply -f -
