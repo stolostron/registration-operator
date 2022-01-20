@@ -140,8 +140,8 @@ func (t *Tester) CreateKlusterlet(name, clusterName, agentNamespace string) (*op
 			Name: name,
 		},
 		Spec: operatorapiv1.KlusterletSpec{
-			RegistrationImagePullSpec: "quay.io/open-cluster-management/registration:latest",
-			WorkImagePullSpec:         "quay.io/open-cluster-management/work:latest",
+			RegistrationImagePullSpec: "quay.io/stolostron/registration:release-2.2",
+			WorkImagePullSpec:         "quay.io/stolostron/work:release-2.2",
 			ExternalServerURLs: []operatorapiv1.ServerURL{
 				{
 					URL: "https://localhost",
