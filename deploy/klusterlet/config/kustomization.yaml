@@ -17,6 +17,6 @@ replicas:
   count: 1
 
 images:
-  - name: quay.io/open-cluster-management/registration-operator
+  - name: quay.io/open-cluster-management/registration-operator:latest
     newName: quay.io/open-cluster-management/registration-operator
     newTag: latest
