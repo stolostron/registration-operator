@@ -20,7 +20,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 
 	"github.com/openshift/library-go/pkg/assets"
@@ -525,14 +524,8 @@ func (n *klusterletController) createManagedClusterKubeconfig(
 	kubeconfigTemplate *rest.Config,
 	saClient kubernetes.Interface, secretClient coreclientv1.SecretsGetter,
 	recorder events.Recorder) error {
-	err := retry.OnError(retry.DefaultBackoff,
-		func(e error) bool {
-			return true
-		},
-		func() error {
-			return helpers.EnsureSAToken(ctx, saName, klusterletNamespace, saClient,
-				helpers.RenderToKubeconfigSecret(ctx, secretName, agentNamespace, kubeconfigTemplate, n.kubeClient.CoreV1(), recorder))
-		})
+	tokenGetter := helpers.SATokenGetter(ctx, saName, klusterletNamespace, saClient)
+	err := helpers.SyncKubeConfigSecret(ctx, secretName, agentNamespace, kubeconfigTemplate, n.kubeClient.CoreV1(), tokenGetter, recorder)
 	if err != nil {
 		_, _, _ = helpers.UpdateKlusterletStatus(ctx, n.klusterletClient, klusterletName, helpers.UpdateKlusterletConditionFn(metav1.Condition{
 			Type: klusterletApplied, Status: metav1.ConditionFalse, Reason: "KlusterletApplyFailed",
