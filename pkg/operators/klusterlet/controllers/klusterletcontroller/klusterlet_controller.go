@@ -103,17 +103,6 @@ var (
 			"open-cluster-management:%s-work:agent-addition",
 		},
 	}
-
-	// Clean clusterrolebindings/rolebindings before apply it as it's RoleRef/Subjects changes
-	cleanManagedStaticResourceFiles = []string{
-		"klusterlet/managed/klusterlet-work-clusterrolebinding.yaml",
-	}
-
-	// Clean clusterrolebindings/rolebindings before apply it as it's RoleRef/Subjects changes
-	cleanManagementStaticResourceFiles = []string{
-		"klusterlet/management/klusterlet-registration-rolebinding-extension-apiserver.yaml",
-		"klusterlet/management/klusterlet-work-rolebinding-extension-apiserver.yaml",
-	}
 )
 
 type klusterletController struct {
@@ -361,8 +350,7 @@ func (n *klusterletController) sync(ctx context.Context, controllerContext facto
 
 	// Resources need to clean when upgarde from OCM v0.7.0 to v0.8.0.
 	// TODO: remove this after OCM v0.8.0
-	err = n.cleanBeforeApply(ctx, deletedManagedResource, cleanManagedStaticResourceFiles,
-		cleanManagementStaticResourceFiles, managedClusterClients, config)
+	err = n.cleanBeforeApply(ctx, deletedManagedResource, managedClusterClients, config)
 	if err != nil {
 		return err
 	}
@@ -501,23 +489,8 @@ func (n *klusterletController) getClusterNameFromHubKubeConfigSecret(ctx context
 // cleanBeforeApply clean deleted resources and resources that may have conflict if apply new directly
 func (n *klusterletController) cleanBeforeApply(ctx context.Context,
 	deletedManagedResource map[string][]string,
-	cleanManagedStaticResourceFiles []string,
-	cleanManagementStaticResourceFiles []string,
 	managedClients *managedClusterClients,
 	config klusterletConfig) error {
-	// remove static file on the managed cluster
-	err := removeStaticResources(ctx, managedClients.kubeClient, managedClients.apiExtensionClient,
-		cleanManagedStaticResourceFiles, config)
-	if err != nil {
-		return err
-	}
-
-	// remove static file on the management cluster
-	err = removeStaticResources(ctx, n.kubeClient, n.apiExtensionClient, cleanManagementStaticResourceFiles, config)
-	if err != nil {
-		return err
-	}
-
 	// remove deleted resources
 	for kind, names := range deletedManagedResource {
 		switch kind {

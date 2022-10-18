@@ -17,6 +17,7 @@ import (
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	fakeapiextensions "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -234,6 +235,46 @@ func newDeployment(name, namespace string, generation int64) *appsv1.Deployment 
 			Name:       name,
 			Namespace:  namespace,
 			Generation: generation,
+		},
+	}
+}
+
+func newClusterRoleBinding(name, roleRefName string) *rbacv1.ClusterRoleBinding {
+	return &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      "klusterlet",
+				Namespace: "open-cluster-management",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     roleRefName,
+		},
+	}
+}
+
+func newRoleBinding(name, roleRefName string) *rbacv1.RoleBinding {
+	return &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      "klusterlet",
+				Namespace: "open-cluster-management",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "Role",
+			Name:     roleRefName,
 		},
 	}
 }
@@ -1122,6 +1163,92 @@ func TestApplyEndpoints(t *testing.T) {
 			test.verifyActions(client.Actions(), t)
 		})
 	}
+}
+
+func TestApplyClusterRoleBinding(t *testing.T) {
+	testcase := []struct {
+		name          string
+		existing      []runtime.Object
+		expected      *rbacv1.ClusterRoleBinding
+		expectUpdated bool
+	}{
+		{
+			name:          "Create a new clusterrolebinding",
+			expectUpdated: true,
+			existing:      []runtime.Object{},
+			expected:      newClusterRoleBinding("test", "clusterrole1"),
+		},
+		{
+			name:          "update an existing clusterrolebinding",
+			expectUpdated: true,
+			existing:      []runtime.Object{newClusterRoleBinding("test", "clusterrole1")},
+			expected:      newClusterRoleBinding("test", "clusterrole2"),
+		},
+		{
+			name:          "skip update",
+			expectUpdated: false,
+			existing:      []runtime.Object{newClusterRoleBinding("test", "clusterrole1")},
+			expected:      newClusterRoleBinding("test", "clusterrole1"),
+		},
+	}
+
+	for _, c := range testcase {
+		t.Run(c.name, func(t *testing.T) {
+			fakeKubeClient := fakekube.NewSimpleClientset(c.existing...)
+			_, updated, err := ApplyClusterRoleBinding(context.TODO(), fakeKubeClient.RbacV1(), eventstesting.NewTestingEventRecorder(t), c.expected)
+			if err != nil {
+				t.Errorf("Expected no error when applying: %v", err)
+			}
+
+			if updated != c.expectUpdated {
+				t.Errorf("Expect update is %t, but got %t", c.expectUpdated, updated)
+			}
+		})
+	}
+
+}
+
+func TestApplyRoleBinding(t *testing.T) {
+	testcase := []struct {
+		name          string
+		existing      []runtime.Object
+		expected      *rbacv1.RoleBinding
+		expectUpdated bool
+	}{
+		{
+			name:          "Create a new clusterrolebinding",
+			expectUpdated: true,
+			existing:      []runtime.Object{},
+			expected:      newRoleBinding("test", "clusterrole1"),
+		},
+		{
+			name:          "update an existing clusterrolebinding",
+			expectUpdated: true,
+			existing:      []runtime.Object{newRoleBinding("test", "role1")},
+			expected:      newRoleBinding("test", "role2"),
+		},
+		{
+			name:          "skip update",
+			expectUpdated: false,
+			existing:      []runtime.Object{newRoleBinding("test", "role1")},
+			expected:      newRoleBinding("test", "role1"),
+		},
+	}
+
+	for _, c := range testcase {
+		t.Run(c.name, func(t *testing.T) {
+			fakeKubeClient := fakekube.NewSimpleClientset(c.existing...)
+			_, updated, err := ApplyRoleBinding(context.TODO(), fakeKubeClient.RbacV1(), eventstesting.NewTestingEventRecorder(t), c.expected)
+			if err != nil {
+				t.Errorf("Expected no error when applying: %v", err)
+			}
+
+			if updated != c.expectUpdated {
+				t.Errorf("Expect update is %t, but got %t", c.expectUpdated, updated)
+			}
+		})
+	}
+
 }
 
 func TestGetRelatedResource(t *testing.T) {
