@@ -32,6 +32,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	admissionclient "k8s.io/client-go/kubernetes/typed/admissionregistration/v1"
 	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	rbacclientv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
@@ -357,6 +358,52 @@ func ApplyEndpoints(ctx context.Context, client coreclientv1.EndpointsGetter, re
 	return actual, true, err
 }
 
+// Wrap resourceapply.ApplyClusterRoleBinding()
+// For non-matching roleref, delete and recreate
+func ApplyClusterRoleBinding(ctx context.Context, client rbacclientv1.ClusterRoleBindingsGetter, recorder events.Recorder, required *rbacv1.ClusterRoleBinding) (*rbacv1.ClusterRoleBinding, bool, error) {
+	existing, err := client.ClusterRoleBindings().Get(ctx, required.Name, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return resourceapply.ApplyClusterRoleBinding(ctx, client, recorder, required)
+	}
+	if err != nil {
+		return nil, false, err
+	}
+
+	roleRefIsSame := equality.Semantic.DeepEqual(existing.RoleRef, required.RoleRef)
+	if !roleRefIsSame {
+		err = client.ClusterRoleBindings().Delete(ctx, existing.Name, metav1.DeleteOptions{})
+		klog.Infof("Delete ClusterRoleBindings %s as roleRef changes", required.Name)
+	}
+	if err != nil {
+		return nil, false, err
+	}
+
+	return resourceapply.ApplyClusterRoleBinding(ctx, client, recorder, required)
+}
+
+// Wrap resourceapply.ApplyRoleBinding()
+// For non-matching roleref, delete and recreate
+func ApplyRoleBinding(ctx context.Context, client rbacclientv1.RoleBindingsGetter, recorder events.Recorder, required *rbacv1.RoleBinding) (*rbacv1.RoleBinding, bool, error) {
+	existing, err := client.RoleBindings(required.Namespace).Get(ctx, required.Name, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return resourceapply.ApplyRoleBinding(ctx, client, recorder, required)
+	}
+	if err != nil {
+		return nil, false, err
+	}
+
+	roleRefIsSame := equality.Semantic.DeepEqual(existing.RoleRef, required.RoleRef)
+	if !roleRefIsSame {
+		err = client.RoleBindings(required.Namespace).Delete(ctx, existing.Name, metav1.DeleteOptions{})
+		klog.Infof("Delete RoleBindings %s/%s as roleRef changes", required.Namespace, required.Name)
+	}
+	if err != nil {
+		return nil, false, err
+	}
+
+	return resourceapply.ApplyRoleBinding(ctx, client, recorder, required)
+}
+
 func ApplyDirectly(
 	ctx context.Context,
 	client kubernetes.Interface,
@@ -439,6 +486,10 @@ func ApplyDirectly(
 			}
 		case *corev1.Endpoints:
 			result.Result, result.Changed, result.Error = ApplyEndpoints(context.TODO(), client.CoreV1(), t)
+		case *rbacv1.ClusterRoleBinding:
+			result.Result, result.Changed, result.Error = ApplyClusterRoleBinding(context.TODO(), client.RbacV1(), recorder, t)
+		case *rbacv1.RoleBinding:
+			result.Result, result.Changed, result.Error = ApplyRoleBinding(context.TODO(), client.RbacV1(), recorder, t)
 		default:
 			genericApplyFiles = append(genericApplyFiles, file)
 		}
