@@ -7,6 +7,7 @@ package klusterletcontroller
 import (
 	"context"
 	"fmt"
+
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
@@ -22,26 +23,16 @@ import (
 	"open-cluster-management.io/registration-operator/pkg/helpers"
 )
 
-var (
-	managedStaticResourceFiles = []string{
-		"klusterlet/managed/klusterlet-registration-serviceaccount.yaml",
-		"klusterlet/managed/klusterlet-registration-clusterrole.yaml",
-		"klusterlet/managed/klusterlet-registration-clusterrole-addon-management.yaml",
-		"klusterlet/managed/klusterlet-registration-clusterrolebinding.yaml",
-		"klusterlet/managed/klusterlet-registration-clusterrolebinding-addon-management.yaml",
-		"klusterlet/managed/klusterlet-work-serviceaccount.yaml",
-		"klusterlet/managed/klusterlet-work-clusterrole.yaml",
-		"klusterlet/managed/klusterlet-work-clusterrole-execution.yaml",
-		"klusterlet/managed/klusterlet-work-clusterrolebinding.yaml",
-		"klusterlet/managed/klusterlet-work-clusterrolebinding-execution.yaml",
-		"klusterlet/managed/klusterlet-work-clusterrolebinding-execution-admin.yaml",
-	}
-
-	kube111StaticResourceFiles = []string{
-		"klusterletkube111/klusterlet-registration-operator-clusterrolebinding.yaml",
-		"klusterletkube111/klusterlet-work-clusterrolebinding.yaml",
-	}
-)
+var managedStaticResourceFiles = []string{
+	"klusterlet/managed/klusterlet-agent-serviceaccount.yaml",
+	"klusterlet/managed/klusterlet-agent-clusterrole.yaml",
+	"klusterlet/managed/klusterlet-agent-clusterrole-addon-management.yaml",
+	"klusterlet/managed/klusterlet-agent-clusterrole-execution.yaml",
+	"klusterlet/managed/klusterlet-agent-clusterrolebinding.yaml",
+	"klusterlet/managed/klusterlet-agent-clusterrolebinding-addon-management.yaml",
+	"klusterlet/managed/klusterlet-agent-clusterrolebinding-execution.yaml",
+	"klusterlet/managed/klusterlet-agent-clusterrolebinding-execution-admin.yaml",
+}
 
 // managedReconcile apply resources to managed clusters
 type managedReconcile struct {
@@ -82,12 +73,6 @@ func (r *managedReconcile) reconcile(ctx context.Context, klusterlet *operatorap
 	}
 
 	managedResource := managedStaticResourceFiles
-	// If kube version is less than 1.12, deploy static resource for kube 1.11 at first
-	// TODO remove this when we do not support kube 1.11 any longer
-	if cnt, err := r.kubeVersion.Compare("v1.12.0"); err == nil && cnt < 0 {
-		managedResource = append(managedResource, kube111StaticResourceFiles...)
-	}
-
 	resourceResults := helpers.ApplyDirectly(
 		ctx,
 		r.managedClusterClients.kubeClient,
@@ -138,14 +123,6 @@ func (r *managedReconcile) clean(ctx context.Context, klusterlet *operatorapiv1.
 	if err := removeStaticResources(ctx, r.managedClusterClients.kubeClient, r.managedClusterClients.apiExtensionClient,
 		managedStaticResourceFiles, config); err != nil {
 		return klusterlet, reconcileStop, err
-	}
-
-	if cnt, err := r.kubeVersion.Compare("v1.12.0"); err == nil && cnt < 0 {
-		err = removeStaticResources(ctx, r.managedClusterClients.kubeClient, r.managedClusterClients.apiExtensionClient,
-			kube111StaticResourceFiles, config)
-		if err != nil {
-			return klusterlet, reconcileStop, err
-		}
 	}
 
 	// remove the klusterlet namespace and klusterlet addon namespace on the managed cluster

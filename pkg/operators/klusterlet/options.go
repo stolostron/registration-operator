@@ -2,7 +2,7 @@ package klusterlet
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
@@ -65,7 +65,7 @@ func (o *Options) RunKlusterletOperator(ctx context.Context, controllerContext *
 
 	// Read component namespace
 	operatorNamespace := defaultComponentNamespace
-	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err == nil {
 		operatorNamespace = string(nsBytes)
 	}

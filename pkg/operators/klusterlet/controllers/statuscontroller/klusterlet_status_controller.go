@@ -29,9 +29,8 @@ type klusterletStatusController struct {
 }
 
 const (
-	klusterletRegistrationDesiredDegraded = "RegistrationDesiredDegraded"
-	klusterletWorkDesiredDegraded         = "WorkDesiredDegraded"
-	klusterletAvailable                   = "Available"
+	klusterletAgentDesiredDegraded = "AgentDesiredDegraded"
+	klusterletAvailable            = "Available"
 )
 
 // NewKlusterletStatusController returns a klusterletStatusController
@@ -69,32 +68,24 @@ func (k *klusterletStatusController) sync(ctx context.Context, controllerContext
 	klusterlet = klusterlet.DeepCopy()
 
 	agentNamespace := helpers.AgentNamespace(klusterlet)
-	registrationDeploymentName := fmt.Sprintf("%s-registration-agent", klusterlet.Name)
-	workDeploymentName := fmt.Sprintf("%s-work-agent", klusterlet.Name)
+	agentDeploymentName := fmt.Sprintf("%s-multicluster-controlplane-agent", klusterlet.Name)
 
 	availableCondition := checkAgentsDeploymentAvailable(
 		ctx, k.kubeClient,
 		[]klusterletAgent{
 			{
-				deploymentName: registrationDeploymentName,
-				namespace:      agentNamespace,
-			},
-			{
-				deploymentName: workDeploymentName,
+				deploymentName: agentDeploymentName,
 				namespace:      agentNamespace,
 			},
 		},
 	)
 	availableCondition.ObservedGeneration = klusterlet.Generation
 
-	registrationDesiredCondition := checkAgentDeploymentDesired(ctx, k.kubeClient, agentNamespace, registrationDeploymentName, klusterletRegistrationDesiredDegraded)
-	registrationDesiredCondition.ObservedGeneration = klusterlet.Generation
-
-	workDesiredCondition := checkAgentDeploymentDesired(ctx, k.kubeClient, agentNamespace, workDeploymentName, klusterletWorkDesiredDegraded)
-	workDesiredCondition.ObservedGeneration = klusterlet.Generation
+	agentDesiredCondition := checkAgentDeploymentDesired(ctx, k.kubeClient, agentNamespace, agentDeploymentName, klusterletAgentDesiredDegraded)
+	agentDesiredCondition.ObservedGeneration = klusterlet.Generation
 
 	_, _, err = helpers.UpdateKlusterletStatus(ctx, k.klusterletClient, klusterletName,
-		helpers.UpdateKlusterletConditionFn(availableCondition, registrationDesiredCondition, workDesiredCondition),
+		helpers.UpdateKlusterletConditionFn(availableCondition, agentDesiredCondition),
 	)
 	return err
 }

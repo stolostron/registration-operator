@@ -6,7 +6,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: open-cluster-management:{{ .KlusterletName }}-registration:addon-management
+  name: open-cluster-management:{{ .KlusterletName }}:addon-management
 rules:
 # Allow agent to get/list/watch/create/delete/update/patch secrets.
 - apiGroups: [""]

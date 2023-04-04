@@ -3,7 +3,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: open-cluster-management:management:{{ .KlusterletName }}-registration:addon-management
+  name: open-cluster-management:management:multicluster-controlplane:agent:addon-management
 rules:
 # Allow agent to get/list/watch/create/delete/update/patch secrets, registration agent needs secret permission for an 
 # arbitrary namespace to create hub-kubeconfig secret for an addon

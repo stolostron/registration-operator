@@ -23,17 +23,13 @@ import (
 
 var (
 	managementStaticResourceFiles = []string{
+		"klusterlet/management/klusterlet-agent-serviceaccount.yaml",
+		"klusterlet/management/klusterlet-agent-role.yaml",
+		"klusterlet/management/klusterlet-agent-rolebinding.yaml",
 		"klusterlet/management/klusterlet-role-extension-apiserver.yaml",
-		"klusterlet/management/klusterlet-registration-serviceaccount.yaml",
-		"klusterlet/management/klusterlet-registration-role.yaml",
-		"klusterlet/management/klusterlet-registration-rolebinding.yaml",
-		"klusterlet/management/klusterlet-registration-rolebinding-extension-apiserver.yaml",
-		"klusterlet/management/klusterlet-registration-clusterrole-addon-management.yaml",
-		"klusterlet/management/klusterlet-registration-clusterrolebinding-addon-management.yaml",
-		"klusterlet/management/klusterlet-work-serviceaccount.yaml",
-		"klusterlet/management/klusterlet-work-role.yaml",
-		"klusterlet/management/klusterlet-work-rolebinding.yaml",
-		"klusterlet/management/klusterlet-work-rolebinding-extension-apiserver.yaml",
+		"klusterlet/management/klusterlet-agent-rolebinding-extension-apiserver.yaml",
+		"klusterlet/management/klusterlet-agent-clusterrole-addon-management.yaml",
+		"klusterlet/management/klusterlet-agent-clusterrolebinding-addon-management.yaml",
 	}
 )
 

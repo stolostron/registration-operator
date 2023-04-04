@@ -4,10 +4,11 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"k8s.io/client-go/rest"
 	"strings"
 	"testing"
 	"time"
+
+	"k8s.io/client-go/rest"
 
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	appsv1 "k8s.io/api/apps/v1"
@@ -615,7 +616,7 @@ func TestSyncDeployHostedCreateAgentNamespace(t *testing.T) {
 	klusterlet := newKlusterletHosted("klusterlet", "testns", "cluster1")
 	meta.SetStatusCondition(&klusterlet.Status.Conditions, metav1.Condition{
 		Type: klusterletReadyToApply, Status: metav1.ConditionFalse, Reason: "KlusterletPrepareFailed",
-		Message: fmt.Sprintf("Failed to build managed cluster clients: secrets \"external-managed-kubeconfig\" not found"),
+		Message: "Failed to build managed cluster clients: secrets \"external-managed-kubeconfig\" not found",
 	})
 	controller := newTestControllerHosted(t, klusterlet, nil).setDefaultManagedClusterClientsBuilder()
 	syncContext := testinghelper.NewFakeSyncContext(t, "klusterlet")

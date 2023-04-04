@@ -3,7 +3,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: open-cluster-management:{{ .KlusterletName }}-work:execution-admin
+  name: open-cluster-management:{{ .KlusterletName }}:work-execution-admin
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -12,5 +12,5 @@ roleRef:
   name: admin
 subjects:
   - kind: ServiceAccount
-    name: {{ .KlusterletName }}-work-sa
+    name: {{ .KlusterletName }}-agent-sa
     namespace: {{ .KlusterletNamespace }}
