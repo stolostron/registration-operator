@@ -19,7 +19,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strconv"
 	"sync"
@@ -829,35 +828,13 @@ func (ca *CA) MakeServerCertForDuration(hostnames sets.String, lifetime time.Dur
 }
 
 func (ca *CA) EnsureClientCertificate(certFile, keyFile string, u user.Info, expireDays int) (*TLSCertificateConfig, bool, error) {
-	certConfig, err := GetClientCertificate(certFile, keyFile, u)
+	certConfig, err := GetTLSCertificateConfig(certFile, keyFile)
 	if err != nil {
 		certConfig, err = ca.MakeClientCertificate(certFile, keyFile, u, expireDays)
 		return certConfig, true, err // true indicates we wrote the files.
 	}
+
 	return certConfig, false, nil
-}
-
-func GetClientCertificate(certFile, keyFile string, u user.Info) (*TLSCertificateConfig, error) {
-	certConfig, err := GetTLSCertificateConfig(certFile, keyFile)
-	if err != nil {
-		return nil, err
-	}
-
-	if subject := certConfig.Certs[0].Subject; subjectChanged(subject, userToSubject(u)) {
-		return nil, fmt.Errorf("existing client certificate in %s was issued for a different Subject (%s)",
-			certFile, subject)
-	}
-
-	return certConfig, nil
-}
-
-func subjectChanged(existing, expected pkix.Name) bool {
-	sort.Strings(existing.Organization)
-	sort.Strings(expected.Organization)
-
-	return existing.CommonName != expected.CommonName ||
-		existing.SerialNumber != expected.SerialNumber ||
-		!reflect.DeepEqual(existing.Organization, expected.Organization)
 }
 
 func (ca *CA) MakeClientCertificate(certFile, keyFile string, u user.Info, expireDays int) (*TLSCertificateConfig, error) {
