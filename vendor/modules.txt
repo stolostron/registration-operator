@@ -210,7 +210,6 @@ github.com/openshift/client-go/config/clientset/versioned/typed/config/v1
 ## explicit; go 1.18
 github.com/openshift/library-go/pkg/assets
 github.com/openshift/library-go/pkg/authorization/hardcodedauthorizer
-github.com/openshift/library-go/pkg/certs
 github.com/openshift/library-go/pkg/config/client
 github.com/openshift/library-go/pkg/config/clusterstatus
 github.com/openshift/library-go/pkg/config/configdefaults
@@ -1096,13 +1095,8 @@ k8s.io/klog/v2/internal/severity
 k8s.io/kube-aggregator/pkg/apis/apiregistration
 k8s.io/kube-aggregator/pkg/apis/apiregistration/v1
 k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1
-k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset
-k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/fake
 k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/scheme
 k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1
-k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1/fake
-k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1beta1
-k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1beta1/fake
 # k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1
 ## explicit; go 1.18
 k8s.io/kube-openapi/pkg/builder
@@ -1138,10 +1132,8 @@ k8s.io/utils/trace
 ## explicit; go 1.19
 open-cluster-management.io/api/addon/v1alpha1
 open-cluster-management.io/api/client/operator/clientset/versioned
-open-cluster-management.io/api/client/operator/clientset/versioned/fake
 open-cluster-management.io/api/client/operator/clientset/versioned/scheme
 open-cluster-management.io/api/client/operator/clientset/versioned/typed/operator/v1
-open-cluster-management.io/api/client/operator/clientset/versioned/typed/operator/v1/fake
 open-cluster-management.io/api/client/operator/informers/externalversions
 open-cluster-management.io/api/client/operator/informers/externalversions/internalinterfaces
 open-cluster-management.io/api/client/operator/informers/externalversions/operator

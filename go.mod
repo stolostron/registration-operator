@@ -4,7 +4,6 @@ go 1.19
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/google/go-cmp v0.5.9
 	github.com/openshift/api v0.0.0-20221116152553-4b67c2b2bb1e
 	github.com/openshift/library-go v0.0.0-20221205131816-1700fb06ea43
 	github.com/spf13/cobra v1.6.1
@@ -42,6 +41,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
