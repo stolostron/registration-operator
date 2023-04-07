@@ -76,8 +76,7 @@ func (o *Options) RunKlusterletOperator(ctx context.Context, controllerContext *
 		kubeInformer.Core().V1().Secrets(),
 		kubeInformer.Apps().V1().Deployments(),
 		workClient.WorkV1().AppliedManifestWorks(),
-		controllerContext.EventRecorder,
-		o.SkipPlaceholderHubSecret)
+		controllerContext.EventRecorder)
 
 	klusterletCleanupController := klusterletcontroller.NewKlusterletCleanupController(
 		kubeClient,

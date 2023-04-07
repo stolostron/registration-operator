@@ -50,7 +50,6 @@ type klusterletController struct {
 	klusterletLister             operatorlister.KlusterletLister
 	kubeClient                   kubernetes.Interface
 	operatorNamespace            string
-	skipHubSecretPlaceholder     bool
 	cache                        resourceapply.ResourceCache
 	managedClusterClientsBuilder managedClusterClientsBuilderInterface
 }
@@ -76,14 +75,12 @@ func NewKlusterletController(
 	secretInformer coreinformer.SecretInformer,
 	deploymentInformer appsinformer.DeploymentInformer,
 	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface,
-	recorder events.Recorder,
-	skipHubSecretPlaceholder bool) factory.Controller {
+	recorder events.Recorder) factory.Controller {
 	controller := &klusterletController{
-		kubeClient:               kubeClient,
-		klusterletClient:         klusterletClient,
-		klusterletLister:         klusterletInformer.Lister(),
-		skipHubSecretPlaceholder: skipHubSecretPlaceholder,
-		cache:                    resourceapply.NewResourceCache(),
+		kubeClient:       kubeClient,
+		klusterletClient: klusterletClient,
+		klusterletLister: klusterletInformer.Lister(),
+		cache:            resourceapply.NewResourceCache(),
 		managedClusterClientsBuilder: newManagedClusterClientsBuilder(
 			kubeClient, apiExtensionClient, appliedManifestWorkClient),
 	}
