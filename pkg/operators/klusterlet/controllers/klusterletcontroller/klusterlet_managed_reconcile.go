@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/kubernetes"
 	operatorapiv1 "open-cluster-management.io/api/operator/v1"
 
@@ -39,7 +38,6 @@ type managedReconcile struct {
 	managedClusterClients *managedClusterClients
 	kubeClient            kubernetes.Interface
 	opratorNamespace      string
-	kubeVersion           *version.Version
 	recorder              events.Recorder
 	cache                 resourceapply.ResourceCache
 }

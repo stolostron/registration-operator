@@ -92,10 +92,10 @@ func (r *managementReconcile) reconcile(ctx context.Context, klusterlet *operato
 func (r *managementReconcile) clean(ctx context.Context, klusterlet *operatorapiv1.Klusterlet, config klusterletConfig) (*operatorapiv1.Klusterlet, reconcileState, error) {
 	// Remove secrets
 	secrets := []string{config.HubKubeConfigSecret}
-	if config.InstallMode == operatorapiv1.InstallModeHosted {
-		// In Hosted mod, also need to remove the external-managed-kubeconfig-registration and external-managed-kubeconfig-work
-		secrets = append(secrets, []string{config.ExternalManagedKubeConfigRegistrationSecret, config.ExternalManagedKubeConfigWorkSecret}...)
-	}
+	//if config.InstallMode == operatorapiv1.InstallModeHosted {
+	// In Hosted mod, also need to remove the external-managed-kubeconfig-registration and external-managed-kubeconfig-work
+	//secrets = append(secrets, []string{config.ExternalManagedKubeConfigRegistrationSecret, config.ExternalManagedKubeConfigWorkSecret}...)
+	//}
 	for _, secret := range secrets {
 		err := r.kubeClient.CoreV1().Secrets(config.AgentNamespace).Delete(ctx, secret, metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {

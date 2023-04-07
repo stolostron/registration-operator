@@ -3,9 +3,10 @@ package klusterletcontroller
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	ocmfeature "open-cluster-management.io/api/feature"
-	"strings"
 
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -16,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/version"
 	appsinformer "k8s.io/client-go/informers/apps/v1"
 	coreinformer "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -49,7 +49,6 @@ type klusterletController struct {
 	klusterletClient             operatorv1client.KlusterletInterface
 	klusterletLister             operatorlister.KlusterletLister
 	kubeClient                   kubernetes.Interface
-	kubeVersion                  *version.Version
 	operatorNamespace            string
 	skipHubSecretPlaceholder     bool
 	cache                        resourceapply.ResourceCache
@@ -77,24 +76,25 @@ func NewKlusterletController(
 	secretInformer coreinformer.SecretInformer,
 	deploymentInformer appsinformer.DeploymentInformer,
 	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface,
-	kubeVersion *version.Version,
 	operatorNamespace string,
 	recorder events.Recorder,
 	skipHubSecretPlaceholder bool) factory.Controller {
 	controller := &klusterletController{
-		kubeClient:                   kubeClient,
-		klusterletClient:             klusterletClient,
-		klusterletLister:             klusterletInformer.Lister(),
-		kubeVersion:                  kubeVersion,
-		operatorNamespace:            operatorNamespace,
-		skipHubSecretPlaceholder:     skipHubSecretPlaceholder,
-		cache:                        resourceapply.NewResourceCache(),
-		managedClusterClientsBuilder: newManagedClusterClientsBuilder(kubeClient, apiExtensionClient, appliedManifestWorkClient),
+		kubeClient:               kubeClient,
+		klusterletClient:         klusterletClient,
+		klusterletLister:         klusterletInformer.Lister(),
+		operatorNamespace:        operatorNamespace,
+		skipHubSecretPlaceholder: skipHubSecretPlaceholder,
+		cache:                    resourceapply.NewResourceCache(),
+		managedClusterClientsBuilder: newManagedClusterClientsBuilder(
+			kubeClient, apiExtensionClient, appliedManifestWorkClient),
 	}
 
 	return factory.New().WithSync(controller.sync).
-		WithInformersQueueKeyFunc(helpers.KlusterletSecretQueueKeyFunc(controller.klusterletLister), secretInformer.Informer()).
-		WithInformersQueueKeyFunc(helpers.KlusterletDeploymentQueueKeyFunc(controller.klusterletLister), deploymentInformer.Informer()).
+		WithInformersQueueKeyFunc(
+			helpers.KlusterletSecretQueueKeyFunc(controller.klusterletLister), secretInformer.Informer()).
+		WithInformersQueueKeyFunc(
+			helpers.KlusterletDeploymentQueueKeyFunc(controller.klusterletLister), deploymentInformer.Informer()).
 		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
 			accessor, _ := meta.Accessor(obj)
 			return accessor.GetName()
@@ -125,12 +125,9 @@ type klusterletConfig struct {
 	HubKubeConfigSecret       string
 	BootStrapKubeConfigSecret string
 	OperatorNamespace         string
-	Replica                   int32
 
-	ExternalManagedKubeConfigSecret             string
-	ExternalManagedKubeConfigRegistrationSecret string
-	ExternalManagedKubeConfigWorkSecret         string
-	InstallMode                                 operatorapiv1.InstallMode
+	ExternalManagedKubeConfigSecret string
+	InstallMode                     operatorapiv1.InstallMode
 
 	RegistrationFeatureGates []string
 	WorkFeatureGates         []string
@@ -163,13 +160,10 @@ func (n *klusterletController) sync(ctx context.Context, controllerContext facto
 		HubKubeConfigSecret:       helpers.HubKubeConfig,
 		ExternalServerURL:         getServersFromKlusterlet(klusterlet),
 		OperatorNamespace:         n.operatorNamespace,
-		Replica:                   helpers.DetermineReplica(ctx, n.kubeClient, klusterlet.Spec.DeployOption.Mode, n.kubeVersion),
 
-		ExternalManagedKubeConfigSecret:             helpers.ExternalManagedKubeConfig,
-		ExternalManagedKubeConfigRegistrationSecret: helpers.ExternalManagedKubeConfigRegistration,
-		ExternalManagedKubeConfigWorkSecret:         helpers.ExternalManagedKubeConfigWork,
-		InstallMode:                                 klusterlet.Spec.DeployOption.Mode,
-		HubApiServerHostAlias:                       klusterlet.Spec.HubApiServerHostAlias,
+		ExternalManagedKubeConfigSecret: fmt.Sprintf("%s-%s", klusterlet.Name, helpers.ExternalManagedKubeConfig),
+		InstallMode:                     klusterlet.Spec.DeployOption.Mode,
+		HubApiServerHostAlias:           klusterlet.Spec.HubApiServerHostAlias,
 	}
 
 	managedClusterClients, err := n.managedClusterClientsBuilder.
@@ -222,25 +216,25 @@ func (n *klusterletController) sync(ctx context.Context, controllerContext facto
 	if klusterlet.Spec.RegistrationConfiguration != nil {
 		registrationFeatureGates = klusterlet.Spec.RegistrationConfiguration.FeatureGates
 	}
-	config.RegistrationFeatureGates, registrationFeatureMsgs = helpers.ConvertToFeatureGateFlags("Registration", registrationFeatureGates, ocmfeature.DefaultSpokeRegistrationFeatureGates)
+	config.RegistrationFeatureGates, registrationFeatureMsgs = helpers.ConvertToFeatureGateFlags(
+		"Registration", registrationFeatureGates, ocmfeature.DefaultSpokeRegistrationFeatureGates)
 
 	workFeatureGates := []operatorapiv1.FeatureGate{}
 	if klusterlet.Spec.WorkConfiguration != nil {
 		workFeatureGates = klusterlet.Spec.WorkConfiguration.FeatureGates
 	}
-	config.WorkFeatureGates, workFeatureMsgs = helpers.ConvertToFeatureGateFlags("Work", workFeatureGates, ocmfeature.DefaultSpokeWorkFeatureGates)
+	config.WorkFeatureGates, workFeatureMsgs = helpers.ConvertToFeatureGateFlags(
+		"Work", workFeatureGates, ocmfeature.DefaultSpokeWorkFeatureGates)
 	featureGateCondition := helpers.BuildFeatureCondition(registrationFeatureMsgs, workFeatureMsgs)
 
 	reconcilers := []klusterletReconcile{
 		&crdReconcile{
 			managedClusterClients: managedClusterClients,
-			kubeVersion:           n.kubeVersion,
 			recorder:              controllerContext.Recorder(),
 			cache:                 n.cache},
 		&managedReconcile{
 			managedClusterClients: managedClusterClients,
 			kubeClient:            n.kubeClient,
-			kubeVersion:           n.kubeVersion,
 			opratorNamespace:      n.operatorNamespace,
 			recorder:              controllerContext.Recorder(),
 			cache:                 n.cache},
@@ -350,7 +344,9 @@ func ensureAgentNamespace(ctx context.Context, kubeClient kubernetes.Interface, 
 }
 
 // syncPullSecret will sync pull secret from the sourceClient cluster to the targetClient cluster in desired namespace.
-func syncPullSecret(ctx context.Context, sourceClient, targetClient kubernetes.Interface, klusterlet *operatorapiv1.Klusterlet, operatorNamespace, namespace string, recorder events.Recorder) error {
+func syncPullSecret(ctx context.Context,
+	sourceClient, targetClient kubernetes.Interface,
+	klusterlet *operatorapiv1.Klusterlet, operatorNamespace, namespace string, recorder events.Recorder) error {
 	_, _, err := helpers.SyncSecret(
 		ctx,
 		sourceClient.CoreV1(),

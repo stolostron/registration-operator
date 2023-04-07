@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/version"
 	appsinformer "k8s.io/client-go/informers/apps/v1"
 	coreinformer "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -34,7 +33,6 @@ type klusterletCleanupController struct {
 	klusterletClient             operatorv1client.KlusterletInterface
 	klusterletLister             operatorlister.KlusterletLister
 	kubeClient                   kubernetes.Interface
-	kubeVersion                  *version.Version
 	operatorNamespace            string
 	managedClusterClientsBuilder managedClusterClientsBuilderInterface
 }
@@ -48,14 +46,12 @@ func NewKlusterletCleanupController(
 	secretInformer coreinformer.SecretInformer,
 	deploymentInformer appsinformer.DeploymentInformer,
 	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface,
-	kubeVersion *version.Version,
 	operatorNamespace string,
 	recorder events.Recorder) factory.Controller {
 	controller := &klusterletCleanupController{
 		kubeClient:                   kubeClient,
 		klusterletClient:             klusterletClient,
 		klusterletLister:             klusterletInformer.Lister(),
-		kubeVersion:                  kubeVersion,
 		operatorNamespace:            operatorNamespace,
 		managedClusterClientsBuilder: newManagedClusterClientsBuilder(kubeClient, apiExtensionClient, appliedManifestWorkClient),
 	}
@@ -110,13 +106,10 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 		HubKubeConfigSecret:       helpers.HubKubeConfig,
 		ExternalServerURL:         getServersFromKlusterlet(klusterlet),
 		OperatorNamespace:         n.operatorNamespace,
-		Replica:                   helpers.DetermineReplica(ctx, n.kubeClient, klusterlet.Spec.DeployOption.Mode, n.kubeVersion),
 
-		ExternalManagedKubeConfigSecret:             helpers.ExternalManagedKubeConfig,
-		ExternalManagedKubeConfigRegistrationSecret: helpers.ExternalManagedKubeConfigRegistration,
-		ExternalManagedKubeConfigWorkSecret:         helpers.ExternalManagedKubeConfigWork,
-		InstallMode:                                 klusterlet.Spec.DeployOption.Mode,
-		HubApiServerHostAlias:                       klusterlet.Spec.HubApiServerHostAlias,
+		ExternalManagedKubeConfigSecret: helpers.ExternalManagedKubeConfig,
+		InstallMode:                     klusterlet.Spec.DeployOption.Mode,
+		HubApiServerHostAlias:           klusterlet.Spec.HubApiServerHostAlias,
 	}
 
 	reconcilers := []klusterletReconcile{
@@ -161,13 +154,11 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 			reconcilers = append(reconcilers,
 				&crdReconcile{
 					managedClusterClients: managedClusterClients,
-					kubeVersion:           n.kubeVersion,
 					recorder:              controllerContext.Recorder(),
 				},
 				&managedReconcile{
 					managedClusterClients: managedClusterClients,
 					kubeClient:            n.kubeClient,
-					kubeVersion:           n.kubeVersion,
 					opratorNamespace:      n.operatorNamespace,
 					recorder:              controllerContext.Recorder(),
 				},

@@ -773,7 +773,7 @@ func KlusterletNamespace(klusterlet *operatorapiv1.Klusterlet) string {
 // It is on the managed cluster in the Default mode, and on the management cluster in the Hosted mode.
 func AgentNamespace(klusterlet *operatorapiv1.Klusterlet) string {
 	if klusterlet.Spec.DeployOption.Mode == operatorapiv1.InstallModeHosted {
-		return klusterlet.GetName()
+		return "multicluster-controlplane"
 	}
 
 	return KlusterletNamespace(klusterlet)

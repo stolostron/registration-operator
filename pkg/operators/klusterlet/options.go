@@ -7,14 +7,12 @@ import (
 
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 
 	operatorclient "open-cluster-management.io/api/client/operator/clientset/versioned"
 	operatorinformer "open-cluster-management.io/api/client/operator/informers/externalversions"
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
-	"open-cluster-management.io/registration-operator/pkg/operators/klusterlet/controllers/addonsecretcontroller"
 	"open-cluster-management.io/registration-operator/pkg/operators/klusterlet/controllers/bootstrapcontroller"
 	"open-cluster-management.io/registration-operator/pkg/operators/klusterlet/controllers/klusterletcontroller"
 	"open-cluster-management.io/registration-operator/pkg/operators/klusterlet/controllers/ssarcontroller"
@@ -40,14 +38,14 @@ func (o *Options) RunKlusterletOperator(ctx context.Context, controllerContext *
 		return err
 	}
 
-	version, err := kubeClient.ServerVersion()
-	if err != nil {
-		return err
-	}
-	kubeVersion, err := versionutil.ParseGeneric(version.String())
-	if err != nil {
-		return err
-	}
+	// version, err := kubeClient.ServerVersion()
+	// if err != nil {
+	// 	return err
+	// }
+	// kubeVersion, err := versionutil.ParseGeneric(version.String())
+	// if err != nil {
+	// 	return err
+	// }
 
 	kubeInformer := informers.NewSharedInformerFactory(kubeClient, 5*time.Minute)
 
@@ -78,7 +76,6 @@ func (o *Options) RunKlusterletOperator(ctx context.Context, controllerContext *
 		kubeInformer.Core().V1().Secrets(),
 		kubeInformer.Apps().V1().Deployments(),
 		workClient.WorkV1().AppliedManifestWorks(),
-		kubeVersion,
 		operatorNamespace,
 		controllerContext.EventRecorder,
 		o.SkipPlaceholderHubSecret)
@@ -91,7 +88,6 @@ func (o *Options) RunKlusterletOperator(ctx context.Context, controllerContext *
 		kubeInformer.Core().V1().Secrets(),
 		kubeInformer.Apps().V1().Deployments(),
 		workClient.WorkV1().AppliedManifestWorks(),
-		kubeVersion,
 		operatorNamespace,
 		controllerContext.EventRecorder)
 
@@ -118,12 +114,12 @@ func (o *Options) RunKlusterletOperator(ctx context.Context, controllerContext *
 		controllerContext.EventRecorder,
 	)
 
-	addonController := addonsecretcontroller.NewAddonPullImageSecretController(
-		kubeClient,
-		operatorNamespace,
-		kubeInformer.Core().V1().Namespaces(),
-		controllerContext.EventRecorder,
-	)
+	// addonController := addonsecretcontroller.NewAddonPullImageSecretController(
+	// 	kubeClient,
+	// 	operatorNamespace,
+	// 	kubeInformer.Core().V1().Namespaces(),
+	// 	controllerContext.EventRecorder,
+	// )
 
 	go operatorInformer.Start(ctx.Done())
 	go kubeInformer.Start(ctx.Done())
@@ -132,7 +128,7 @@ func (o *Options) RunKlusterletOperator(ctx context.Context, controllerContext *
 	go statusController.Run(ctx, 1)
 	go ssarController.Run(ctx, 1)
 	go bootstrapController.Run(ctx, 1)
-	go addonController.Run(ctx, 1)
+	// go addonController.Run(ctx, 1)
 
 	<-ctx.Done()
 	return nil

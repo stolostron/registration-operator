@@ -13,7 +13,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/version"
 	operatorapiv1 "open-cluster-management.io/api/operator/v1"
 	"open-cluster-management.io/registration-operator/manifests"
 	"open-cluster-management.io/registration-operator/pkg/helpers"
@@ -28,7 +27,6 @@ var crdV1StaticFiles = []string{
 // crdReconcile apply crds to managed clusters
 type crdReconcile struct {
 	managedClusterClients *managedClusterClients
-	kubeVersion           *version.Version
 	recorder              events.Recorder
 	cache                 resourceapply.ResourceCache
 }
