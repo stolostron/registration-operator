@@ -76,7 +76,6 @@ func (o *Options) RunKlusterletOperator(ctx context.Context, controllerContext *
 		kubeInformer.Core().V1().Secrets(),
 		kubeInformer.Apps().V1().Deployments(),
 		workClient.WorkV1().AppliedManifestWorks(),
-		operatorNamespace,
 		controllerContext.EventRecorder,
 		o.SkipPlaceholderHubSecret)
 

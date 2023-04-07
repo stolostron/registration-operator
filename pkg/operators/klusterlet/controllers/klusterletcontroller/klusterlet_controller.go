@@ -76,14 +76,12 @@ func NewKlusterletController(
 	secretInformer coreinformer.SecretInformer,
 	deploymentInformer appsinformer.DeploymentInformer,
 	appliedManifestWorkClient workv1client.AppliedManifestWorkInterface,
-	operatorNamespace string,
 	recorder events.Recorder,
 	skipHubSecretPlaceholder bool) factory.Controller {
 	controller := &klusterletController{
 		kubeClient:               kubeClient,
 		klusterletClient:         klusterletClient,
 		klusterletLister:         klusterletInformer.Lister(),
-		operatorNamespace:        operatorNamespace,
 		skipHubSecretPlaceholder: skipHubSecretPlaceholder,
 		cache:                    resourceapply.NewResourceCache(),
 		managedClusterClientsBuilder: newManagedClusterClientsBuilder(
@@ -124,7 +122,6 @@ type klusterletConfig struct {
 	ExternalServerURL         string
 	HubKubeConfigSecret       string
 	BootStrapKubeConfigSecret string
-	OperatorNamespace         string
 
 	ExternalManagedKubeConfigSecret string
 	InstallMode                     operatorapiv1.InstallMode
@@ -156,10 +153,9 @@ func (n *klusterletController) sync(ctx context.Context, controllerContext facto
 		RegistrationImage:         klusterlet.Spec.RegistrationImagePullSpec,
 		WorkImage:                 klusterlet.Spec.WorkImagePullSpec,
 		ClusterName:               klusterlet.Spec.ClusterName,
-		BootStrapKubeConfigSecret: helpers.BootstrapHubKubeConfig,
+		BootStrapKubeConfigSecret: getBootstrapHubKubeConfig(klusterlet),
 		HubKubeConfigSecret:       helpers.HubKubeConfig,
 		ExternalServerURL:         getServersFromKlusterlet(klusterlet),
-		OperatorNamespace:         n.operatorNamespace,
 
 		ExternalManagedKubeConfigSecret: fmt.Sprintf("%s-%s", klusterlet.Name, helpers.ExternalManagedKubeConfig),
 		InstallMode:                     klusterlet.Spec.DeployOption.Mode,
@@ -393,4 +389,12 @@ func ensureNamespace(ctx context.Context, kubeClient kubernetes.Interface, klust
 	}
 
 	return nil
+}
+
+func getBootstrapHubKubeConfig(klusterlet *operatorapiv1.Klusterlet) string {
+	if klusterlet.Spec.DeployOption.Mode == operatorapiv1.InstallModeHosted {
+		return "multicluster-controlplane-kubeconfig"
+	}
+
+	return helpers.BootstrapHubKubeConfig
 }

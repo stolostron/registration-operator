@@ -105,7 +105,6 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 		BootStrapKubeConfigSecret: helpers.BootstrapHubKubeConfig,
 		HubKubeConfigSecret:       helpers.HubKubeConfig,
 		ExternalServerURL:         getServersFromKlusterlet(klusterlet),
-		OperatorNamespace:         n.operatorNamespace,
 
 		ExternalManagedKubeConfigSecret: helpers.ExternalManagedKubeConfig,
 		InstallMode:                     klusterlet.Spec.DeployOption.Mode,

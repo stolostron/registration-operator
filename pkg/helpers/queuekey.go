@@ -28,12 +28,6 @@ const (
 	// ExternalManagedKubeConfig is the secret name of kubeconfig secret to connecting to the managed cluster
 	// Only applicable to Hosted mode, klusterlet-operator uses it to install resources on the managed cluster.
 	ExternalManagedKubeConfig = "external-managed-kubeconfig"
-	// ExternalManagedKubeConfigRegistration is the secret name of kubeconfig secret to connecting to the managed cluster
-	// Only applicable to Hosted mode, registration-agent uses it to connect to the managed cluster.
-	ExternalManagedKubeConfigRegistration = "external-managed-kubeconfig-registration"
-	// ExternalManagedKubeConfigWork is the secret name of kubeconfig secret to connecting to the managed cluster
-	// Only applicable to Hosted mode, work-agent uses it to connect to the managed cluster.
-	ExternalManagedKubeConfigWork = "external-managed-kubeconfig-work"
 
 	RegistrationWebhookSecret  = "registration-webhook-serving-cert"
 	RegistrationWebhookService = "cluster-manager-registration-webhook"
