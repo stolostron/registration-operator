@@ -23,7 +23,7 @@ spec:
         args:
           - "/multicluster-controlplane"
           - "agent"
-          - "--cluster-name=cluster1"
+          - "--cluster-name={{ .ClusterName }}"
           - "--bootstrap-kubeconfig=/spoke/bootstrap/kubeconfig"
           - "--feature-gates=AddonManagement=true"
           {{if eq .InstallMode "Hosted"}}
