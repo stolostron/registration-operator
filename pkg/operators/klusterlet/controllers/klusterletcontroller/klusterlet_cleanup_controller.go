@@ -316,6 +316,9 @@ func (n *klusterletCleanupController) removeKlusterletFinalizers(ctx context.Con
 // the hash of the given hub host.
 func (n *klusterletCleanupController) cleanUpAppliedManifestWorks(ctx context.Context, appliedManifestWorkClient workv1client.AppliedManifestWorkInterface, hubHost string) error {
 	appliedManifestWorks, err := appliedManifestWorkClient.List(ctx, metav1.ListOptions{})
+	if errors.IsNotFound(err) {
+		return nil
+	}
 	if err != nil {
 		return fmt.Errorf("unable to list AppliedManifestWorks: %w", err)
 	}
