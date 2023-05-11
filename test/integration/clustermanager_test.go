@@ -217,11 +217,11 @@ var _ = ginkgo.Describe("ClusterManager Default Mode", func() {
 			// Check validating webhook
 			registrationValidtingWebhook := "managedclustervalidators.admission.cluster.open-cluster-management.io"
 
-			//Should not apply the webhook config if the replica and observed is not set
+			// Should not apply the webhook config if the replica and observed is not set
 			_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.Background(), registrationValidtingWebhook, metav1.GetOptions{})
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			workValidtingWebhook := "manifestworkvalidators.admission.work.open-cluster-management.io"
-			//Should not apply the webhook config if the replica and observed is not set
+			// Should not apply the webhook config if the replica and observed is not set
 			_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.Background(), workValidtingWebhook, metav1.GetOptions{})
 			gomega.Expect(err).To(gomega.HaveOccurred())
 

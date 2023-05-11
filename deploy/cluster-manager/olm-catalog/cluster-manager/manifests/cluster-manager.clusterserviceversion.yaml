@@ -122,7 +122,6 @@ spec:
           - namespaces
           - serviceaccounts
           - services
-          - secrets
           verbs:
           - create
           - get
@@ -131,6 +130,33 @@ spec:
           - watch
           - patch
           - delete
+        - apiGroups:
+          - ""
+          resourceNames:
+          - signer-secret
+          - registration-webhook-serving-cert
+          - work-webhook-serving-cert
+          - registration-controller-sa-kubeconfig
+          - registration-webhook-sa-kubeconfig
+          - work-webhook-sa-kubeconfig
+          - placement-controller-sa-kubeconfig
+          - work-controller-sa-kubeconfig
+          - external-hub-kubeconfig
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - create
         - apiGroups:
           - coordination.k8s.io
           resources:
