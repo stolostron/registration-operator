@@ -243,6 +243,7 @@ kubectl config use-context {hub-context}
 kubectl get csr
 ```
 
+
 Next approve the csr and set managedCluster to be accepted by hub with the following command
 
 ```shell
