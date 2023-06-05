@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -48,6 +49,8 @@ var _ = Describe("Enable addon management feature gate", func() {
 			replicas := *addonManagerControllerDeployment.Spec.Replicas
 			readyReplicas := addonManagerControllerDeployment.Status.ReadyReplicas
 			if readyReplicas != replicas {
+				fmt.Printf("#####:%v", addonManagerControllerDeployment.Status)
+				fmt.Printf("#####:%v", addonManagerControllerDeployment)
 				return fmt.Errorf("deployment %s should have %d but got %d ready replicas", t.addonManagerDeployment, replicas, readyReplicas)
 			}
 			return nil
