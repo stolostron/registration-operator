@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -260,7 +261,7 @@ func newTestControllerHosted(t *testing.T, klusterlet *operatorapiv1.Klusterlet,
 		ctx context.Context,
 		kubeClient kubernetes.Interface,
 		namespace,
-		secret string) (*managedClusterClients, error) {
+		secret string, recorder events.Recorder) (*managedClusterClients, error) {
 		return &managedClusterClients{
 			kubeClient:                fakeManagedKubeClient,
 			apiExtensionClient:        fakeManagedAPIExtensionClient,
@@ -316,7 +317,7 @@ func newTestControllerHosted(t *testing.T, klusterlet *operatorapiv1.Klusterlet,
 }
 
 func (c *testController) setBuildManagedClusterClientsHostedModeFunc(
-	f func(ctx context.Context, kubeClient kubernetes.Interface, namespace, secret string) (
+	f func(ctx context.Context, kubeClient kubernetes.Interface, namespace, secret string, recorder events.Recorder) (
 		*managedClusterClients, error)) *testController {
 	c.controller.buildManagedClusterClientsHostedMode = f
 	return c
@@ -872,6 +873,80 @@ func TestSyncWithPullSecret(t *testing.T) {
 
 	if createdSecret == nil || createdSecret.Name != imagePullSecret {
 		t.Errorf("Failed to sync pull secret")
+	}
+}
+
+func TestEnsureNamespace(t *testing.T) {
+	namespaceName := "open-cluster-management-agent"
+	cases := []struct {
+		name      string
+		namespace runtime.Object
+		validate  func(t *testing.T, actions []clienttesting.Action)
+	}{
+		{
+			name: "create ns",
+			validate: func(t *testing.T, actions []clienttesting.Action) {
+				testinghelper.AssertAction(t, actions[1], "create")
+			},
+		},
+		{
+			name: "update ns",
+			namespace: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: namespaceName,
+				},
+			},
+			validate: func(t *testing.T, actions []clienttesting.Action) {
+				testinghelper.AssertAction(t, actions[1], "update")
+			},
+		},
+		{
+			name: "use exsiting ns",
+			namespace: &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: namespaceName,
+					Annotations: map[string]string{
+						"workload.openshift.io/allowed": "management",
+					},
+				},
+			},
+			validate: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 1 {
+					t.Errorf("Unexpected number of actions: %d\n%+v", len(actions), actions)
+				}
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			klusterlet := newKlusterlet("klusterlet", namespaceName, "cluster1")
+
+			objects := []runtime.Object{}
+			if c.namespace != nil {
+				objects = append(objects, c.namespace)
+			}
+
+			contoller := newTestController(t, klusterlet, nil, objects...)
+			syncContext := testinghelper.NewFakeSyncContext(t, "klusterlet")
+			err := contoller.controller.ensureNamespace(context.Background(), contoller.kubeClient, "klusterlet", namespaceName, syncContext.Recorder())
+			if err != nil {
+				t.Errorf("Expected non error when sync, %v", err)
+			}
+
+			if c.validate != nil {
+				c.validate(t, contoller.kubeClient.Actions())
+			}
+
+			// check the annotation
+			ns, err := contoller.kubeClient.CoreV1().Namespaces().Get(context.Background(), namespaceName, metav1.GetOptions{})
+			if err != nil {
+				t.Errorf("Expected non error when sync, %v", err)
+			}
+			if ns.Annotations["workload.openshift.io/allowed"] != "management" {
+				t.Errorf("Expected wlp annotation %q, but got %q", "management", ns.Annotations["workload.openshift.io/allowed"])
+			}
+		})
 	}
 }
 

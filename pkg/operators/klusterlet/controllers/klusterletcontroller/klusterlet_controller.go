@@ -122,7 +122,7 @@ type klusterletController struct {
 	buildManagedClusterClientsHostedMode func(
 		ctx context.Context,
 		kubeClient kubernetes.Interface,
-		namespace, secret string) (*managedClusterClients, error)
+		namespace, secret string, recorder events.Recorder) (*managedClusterClients, error)
 }
 
 // NewKlusterletController construct klusterlet controller
@@ -275,7 +275,7 @@ func (n *klusterletController) sync(ctx context.Context, controllerContext facto
 
 	if config.InstallMode == operatorapiv1.InstallModeHosted {
 		managedClusterClients, err = n.buildManagedClusterClientsHostedMode(ctx,
-			n.kubeClient, config.AgentNamespace, config.ExternalManagedKubeConfigSecret)
+			n.kubeClient, config.AgentNamespace, config.ExternalManagedKubeConfigSecret, controllerContext.Recorder())
 		if err != nil {
 			_, _, _ = helpers.UpdateKlusterletStatus(ctx, n.klusterletClient, klusterletName,
 				helpers.UpdateKlusterletConditionFn(metav1.Condition{
@@ -312,7 +312,7 @@ func (n *klusterletController) sync(ctx context.Context, controllerContext facto
 
 	// Start deploy klusterlet components
 	// Ensure the agent namespace
-	err = n.ensureNamespace(ctx, n.kubeClient, klusterletName, config.AgentNamespace)
+	err = n.ensureNamespace(ctx, n.kubeClient, klusterletName, config.AgentNamespace, controllerContext.Recorder())
 	if err != nil {
 		return err
 	}
@@ -326,7 +326,7 @@ func (n *klusterletController) sync(ctx context.Context, controllerContext facto
 	// TODO(zhujian7): In the future, we may consider deploy addons on the management cluster in Hosted mode.
 	addonNamespace := fmt.Sprintf("%s-addon", config.KlusterletNamespace)
 	// Ensure the addon namespace on the managed cluster
-	err = n.ensureNamespace(ctx, managedClusterClients.kubeClient, klusterletName, addonNamespace)
+	err = n.ensureNamespace(ctx, managedClusterClients.kubeClient, klusterletName, addonNamespace, controllerContext.Recorder())
 	if err != nil {
 		return err
 	}
@@ -342,7 +342,7 @@ func (n *klusterletController) sync(ctx context.Context, controllerContext facto
 	if config.InstallMode == operatorapiv1.InstallModeHosted {
 		// In hosted mode, we should ensure the namespace on the managed cluster since
 		// some resources(eg:service account) are still deployed on managed cluster.
-		err := n.ensureNamespace(ctx, managedClusterClients.kubeClient, klusterletName, config.KlusterletNamespace)
+		err := n.ensureNamespace(ctx, managedClusterClients.kubeClient, klusterletName, config.KlusterletNamespace, controllerContext.Recorder())
 		if err != nil {
 			return err
 		}
@@ -643,34 +643,17 @@ func (n *klusterletController) syncPullSecret(ctx context.Context, sourceClient,
 	return nil
 }
 
-func (n *klusterletController) ensureNamespace(ctx context.Context, kubeClient kubernetes.Interface, klusterletName, namespace string) error {
-	_, err := kubeClient.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
-	switch {
-	case errors.IsNotFound(err):
-		_, createErr := kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: namespace,
-				Annotations: map[string]string{
-					"workload.openshift.io/allowed": "management",
-				},
-			},
-		}, metav1.CreateOptions{})
-		if createErr != nil {
-			_, _, _ = helpers.UpdateKlusterletStatus(ctx, n.klusterletClient, klusterletName, helpers.UpdateKlusterletConditionFn(metav1.Condition{
-				Type: klusterletApplied, Status: metav1.ConditionFalse, Reason: "KlusterletApplyFailed",
-				Message: fmt.Sprintf("Failed to create namespace %q: %v", namespace, createErr),
-			}))
-			return createErr
-		}
-	case err != nil:
-		_, _, _ = helpers.UpdateKlusterletStatus(ctx, n.klusterletClient, klusterletName, helpers.UpdateKlusterletConditionFn(metav1.Condition{
-			Type: klusterletApplied, Status: metav1.ConditionFalse, Reason: "KlusterletApplyFailed",
-			Message: fmt.Sprintf("Failed to get namespace %q: %v", namespace, err),
-		}))
-		return err
+func (n *klusterletController) ensureNamespace(ctx context.Context, kubeClient kubernetes.Interface, klusterletName, namespace string, recorder events.Recorder) error {
+	err := ensureAgentNamespace(ctx, kubeClient, namespace, recorder)
+	if err == nil {
+		return nil
 	}
 
-	return nil
+	_, _, _ = helpers.UpdateKlusterletStatus(ctx, n.klusterletClient, klusterletName, helpers.UpdateKlusterletConditionFn(metav1.Condition{
+		Type: klusterletApplied, Status: metav1.ConditionFalse, Reason: "KlusterletApplyFailed",
+		Message: fmt.Sprintf("Failed to ensure namespace %q: %v", namespace, err),
+	}))
+	return err
 }
 
 func removeStaticResources(ctx context.Context,
@@ -725,12 +708,12 @@ func getManagedKubeConfig(ctx context.Context, kubeClient kubernetes.Interface, 
 }
 
 // buildManagedClusterClientsFromSecret builds variety of clients for managed cluster from managed cluster kubeconfig secret.
-func buildManagedClusterClientsFromSecret(ctx context.Context, client kubernetes.Interface, agentNamespace, secretName string) (
+func buildManagedClusterClientsFromSecret(ctx context.Context, client kubernetes.Interface, agentNamespace, secretName string, recorder events.Recorder) (
 	*managedClusterClients, error) {
 	// Ensure the agent namespace for users to create the external-managed-kubeconfig secret in this
 	// namespace, so that in the next reconcile loop the controller can get the secret successfully after
 	// the secret was created.
-	err := ensureAgentNamespace(ctx, client, agentNamespace)
+	err := ensureAgentNamespace(ctx, client, agentNamespace, recorder)
 	if err != nil {
 		return nil, err
 	}
@@ -767,20 +750,14 @@ func buildManagedClusterClientsFromSecret(ctx context.Context, client kubernetes
 }
 
 // ensureAgentNamespace create agent namespace if it is not exist
-func ensureAgentNamespace(ctx context.Context, kubeClient kubernetes.Interface, namespace string) error {
-	_, err := kubeClient.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		_, createErr := kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: namespace,
-				Annotations: map[string]string{
-					"workload.openshift.io/allowed": "management",
-				},
+func ensureAgentNamespace(ctx context.Context, kubeClient kubernetes.Interface, namespace string, recorder events.Recorder) error {
+	_, _, err := resourceapply.ApplyNamespace(ctx, kubeClient.CoreV1(), recorder, &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+			Annotations: map[string]string{
+				"workload.openshift.io/allowed": "management",
 			},
-		}, metav1.CreateOptions{})
-		if createErr != nil {
-			return createErr
-		}
-	}
+		},
+	})
 	return err
 }

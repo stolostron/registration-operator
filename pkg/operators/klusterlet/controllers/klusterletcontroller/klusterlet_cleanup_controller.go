@@ -46,7 +46,7 @@ type klusterletCleanupController struct {
 	buildManagedClusterClientsHostedMode func(
 		ctx context.Context,
 		kubeClient kubernetes.Interface,
-		namespace, secret string) (*managedClusterClients, error)
+		namespace, secret string, recorder events.Recorder) (*managedClusterClients, error)
 }
 
 // NewKlusterletCleanupController construct klusterlet cleanup controller
@@ -154,7 +154,7 @@ func (n *klusterletCleanupController) sync(ctx context.Context, controllerContex
 	}
 	if installMode == operatorapiv1.InstallModeHosted && !skip {
 		managedClusterClients, err = n.buildManagedClusterClientsHostedMode(ctx,
-			n.kubeClient, config.AgentNamespace, config.ExternalManagedKubeConfigSecret)
+			n.kubeClient, config.AgentNamespace, config.ExternalManagedKubeConfigSecret, controllerContext.Recorder())
 		if err != nil {
 			return err
 		}
