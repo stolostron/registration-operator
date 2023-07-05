@@ -115,10 +115,8 @@ var (
 )
 
 const (
-	clusterManagerFinalizer = "operator.open-cluster-management.io/cluster-manager-cleanup"
-	clusterManagerApplied   = "Applied"
-	caBundleConfigmap       = "ca-bundle-configmap"
-
+	clusterManagerFinalizer          = "operator.open-cluster-management.io/cluster-manager-cleanup"
+	clusterManagerApplied            = "Applied"
 	hubRegistrationFeatureGatesValid = "ValidRegistrationFeatureGates"
 )
 
@@ -164,7 +162,7 @@ func NewClusterManagerController(
 			helpers.ClusterManagerConfigmapQueueKeyFunc(controller.clusterManagerLister),
 			func(obj interface{}) bool {
 				accessor, _ := meta.Accessor(obj)
-				if name := accessor.GetName(); name != caBundleConfigmap {
+				if name := accessor.GetName(); name != helpers.CaBundleConfigmap {
 					return false
 				}
 				return true
@@ -382,7 +380,7 @@ func applyHubResources(
 	// If the configmap is found, populate it into configmap.
 	// If the configmap not found yet, skip this and apply other resources first.
 	caBundle := "placeholder"
-	configmap, err := configMapLister.ConfigMaps(clusterManagerNamespace).Get(caBundleConfigmap)
+	configmap, err := configMapLister.ConfigMaps(clusterManagerNamespace).Get(helpers.CaBundleConfigmap)
 	switch {
 	case errors.IsNotFound(err):
 		// do nothing
@@ -630,9 +628,8 @@ func generateHubClients(hubKubeConfig *rest.Config) (kubernetes.Interface, apiex
 // Finally, a deployment on the management cluster would use the kubeconfig to access resources on the hub cluster.
 func ensureSAKubeconfigs(ctx context.Context, clusterManagerName, clusterManagerNamespace string,
 	hubKubeConfig *rest.Config, hubClient, managementClient kubernetes.Interface, recorder events.Recorder) error {
-	sas := getSAs(clusterManagerName)
-	for _, sa := range sas {
-		tokenGetter := helpers.SATokenGetter(ctx, sa, clusterManagerNamespace, hubClient)
+	for _, sa := range getSAs() {
+		tokenGetter := helpers.SATokenCreater(ctx, sa, clusterManagerNamespace, hubClient)
 		err := helpers.SyncKubeConfigSecret(ctx, sa+"-kubeconfig", clusterManagerNamespace, &rest.Config{
 			Host: hubKubeConfig.Host,
 			TLSClientConfig: rest.TLSClientConfig{
@@ -647,12 +644,12 @@ func ensureSAKubeconfigs(ctx context.Context, clusterManagerName, clusterManager
 }
 
 // getSAs return serviceaccount names of all hub components
-func getSAs(clusterManagerName string) []string {
+func getSAs() []string {
 	return []string{
-		clusterManagerName + "-registration-controller-sa",
-		clusterManagerName + "-registration-webhook-sa",
-		clusterManagerName + "-work-webhook-sa",
-		clusterManagerName + "-placement-controller-sa",
+		"registration-controller-sa",
+		"registration-webhook-sa",
+		"work-webhook-sa",
+		"placement-controller-sa",
 	}
 }
 

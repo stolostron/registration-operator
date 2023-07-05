@@ -39,6 +39,8 @@ const (
 	RegistrationWebhookService = "cluster-manager-registration-webhook"
 	WorkWebhookSecret          = "work-webhook-serving-cert"
 	WorkWebhookService         = "cluster-manager-work-webhook"
+	SignerSecret               = "signer-secret"
+	CaBundleConfigmap          = "ca-bundle-configmap"
 )
 
 func ClusterManagerNamespace(clustermanagername string, mode operatorapiv1.InstallMode) string {
@@ -131,7 +133,7 @@ func ClusterManagerDeploymentQueueKeyFunc(clusterManagerLister operatorlister.Cl
 	}
 }
 
-func ClusterManagerSecretQueueKeyFunc(clusterManagerLister operatorlister.ClusterManagerLister) factory.ObjectQueueKeyFunc {
+func ClusterManagerQueueKeyFunc(clusterManagerLister operatorlister.ClusterManagerLister) factory.ObjectQueueKeyFunc {
 	return clusterManagerByNamespaceQueueKeyFunc(clusterManagerLister)
 }
 

@@ -113,9 +113,9 @@ var _ = ginkgo.Describe("ClusterManager Hosted Mode", func() {
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeNil())
 
 			// Check service account
-			hubRegistrationSA := fmt.Sprintf("%s-registration-controller-sa", clusterManagerName)
-			hubRegistrationWebhookSA := fmt.Sprintf("%s-registration-webhook-sa", clusterManagerName)
-			hubWorkWebhookSA := fmt.Sprintf("%s-work-webhook-sa", clusterManagerName)
+			hubRegistrationSA := "registration-controller-sa"
+			hubRegistrationWebhookSA := "registration-webhook-sa"
+			hubWorkWebhookSA := "work-webhook-sa"
 			gomega.Eventually(func() error {
 				if _, err := hostedKubeClient.CoreV1().ServiceAccounts(hubNamespaceHosted).Get(hostedCtx, hubRegistrationSA, metav1.GetOptions{}); err != nil {
 					return err
